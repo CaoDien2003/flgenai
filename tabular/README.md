@@ -25,7 +25,7 @@ This project implements a federated learning (FL) system using [Flower](https://
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 1. **Clone the repository:**
 ```bash
