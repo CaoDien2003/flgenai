@@ -24,7 +24,7 @@ CONFIG = {
     "plateau_window": 3,  # Number of rounds to consider for plateau detection
     "plateau_delta": 0.01,  # Threshold to trigger plateau
     "min_feedback_round": 3,  # Minimum round to begin feedback
-    "shap_threshold": 0.05  # SHAP threshold for feature importance
+    "shap_threshold": 0.03  # SHAP threshold for feature importance
 }
 
 # Create directories to store feedback and logs
