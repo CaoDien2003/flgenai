@@ -11,6 +11,9 @@ from torchvision import transforms, models
 from collections import defaultdict
 from tqdm import trange
 import math
+import random
+from typing import Dict, List, Union
+from torchvision.utils import save_image
 
 class ClientConfig:
     CLIENT_LOG_DIR = "~/client_logs"
@@ -373,6 +376,7 @@ if __name__ == "__main__":
     )
     
     diffusion_model = Diffusion()
+    checkpoint = torch.load(DIFFUSION_MODEL_PATH, map_location="cpu")
     diffusion_model.load_state_dict(checkpoint["model_ema"])
     try:
         checkpoint = torch.load(DIFFUSION_MODEL_PATH, map_location="cpu")
