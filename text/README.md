@@ -1,8 +1,8 @@
 # Federated Learning with Server Feedback Project
 This project implements a **federated learning (FL)** system using Flower, where:
 
-- The **server** coordinates model training, evaluates performance on a global test set, and uses **Grad-CAM** to generate interpretable feedback on misclassified samples.
-- The **clients** train local models on private data and optionally use this feedback to **generate synthetic text** using **Gemma 2B** via Hugging Face.
+- The server coordinates model training, evaluates performance on a global test set, and uses Grad-CAM to generate interpretable feedback on misclassified samples.
+- The clients train local models on private data and optionally use this feedback to generate synthetic text using Gemma 2B via Hugging Face.
 
 ## Set up
 
