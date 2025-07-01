@@ -52,21 +52,21 @@ Each client will:
 ## Configuration
 
 ### In `client_textdata.py`
-Path to the client's training data (`CSV_PATH`)
-Feedback usage (True = use server's Grad-CAM feedback) (`USE_GRADCAM_FEEDBACK`)
-Ratio of synthetic headlines generated without feedback (`LOCAL_GEN_RATIO`)
-Root folder path on Google Drive if using Colab (`DRIVE_ROOT`)
-Directory where data generation without feedback is saved (`LOCAL_ROOT`)
-Directory where feedback and datageneration with feedback are saved (`FEEDBACK_ROOT`)
+- Path to the client's training data (`CSV_PATH`)
+- Feedback usage (True = use server's Grad-CAM feedback) (`USE_GRADCAM_FEEDBACK`)
+- Ratio of synthetic headlines generated without feedback (`LOCAL_GEN_RATIO`)
+- Root folder path on Google Drive if using Colab (`DRIVE_ROOT`)
+- Directory where data generation without feedback is saved (`LOCAL_ROOT`)
+- Directory where feedback and datageneration with feedback are saved (`FEEDBACK_ROOT`)
 
 
 ### In `server_textdata.py`
-Threshold ratio for token importance (relative to max Grad-CAM score)(`REL_IMPORTANCE`)
-Minimum number of tokens to include in feedback (`MIN_TOKENS`)
-Maximum number of tokens to include in feedback (`MAX_TOKENS`)
-Total number of federated learning rounds (`TOTAL_ROUNDS`)
-How often to save server checkpoints (in rounds) (`CKPT_INTERVAL`)
-Directory where feedback is saved (`GC_ROOT`)
+- Threshold ratio for token importance (relative to max Grad-CAM score)(`REL_IMPORTANCE`)
+- Minimum number of tokens to include in feedback (`MIN_TOKENS`)
+- Maximum number of tokens to include in feedback (`MAX_TOKENS`)
+- Total number of federated learning rounds (`TOTAL_ROUNDS`)
+- How often to save server checkpoints (in rounds) (`CKPT_INTERVAL`)
+- Directory where feedback is saved (`GC_ROOT`)
 
 ---
 ## Notes
