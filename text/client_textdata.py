@@ -27,10 +27,10 @@ login("******")
 MODEL_ID = "google/gemma-2b-it" 
 dtype    = torch.float16
 
-CSV_PATH      = "/content/drive/MyDrive/Colab Notebooks/CS438/client4.csv"
-CKPT_DIR      = "/content/drive/MyDrive/Colab Notebooks/CS438/client_ckpt"
+CSV_PATH      = "CSV_PATH"
+CKPT_DIR      = "client_ckpt"
 
-DRIVE_ROOT    = "/content/drive/MyDrive/Colab Notebooks/CS438"
+DRIVE_ROOT    = "DRIVE_ROOT"
 FEEDBACK_ROOT = f"{DRIVE_ROOT}/datagen_feedback"
 LOCAL_ROOT    = f"{DRIVE_ROOT}/datagen_local"
 

@@ -1,0 +1,20 @@
+# Federated Learning
+flwr==1.8.0
+
+# Deep Learning Framework
+torch==2.1.0
+
+# NLP Models & Tokenizers (Hugging Face Transformers)
+transformers==4.39.3
+sentencepiece
+accelerate
+huggingface_hub
+
+# Data Processing & Utilities
+pandas
+numpy
+scikit-learn
+
+# Compatibility fixes for Hugging Face (Google Colab)
+protobuf<4.0.0
+cryptography>=43.0.0,<44.0.0
