@@ -25,6 +25,7 @@ CONFIG = {
     "plateau_delta": 0.01,  # Threshold to trigger plateau
     "min_feedback_round": 3,  # Minimum round to begin feedback
     "shap_threshold": 0.03  # SHAP threshold for feature importance
+    "top_k_features": 5,  # Number of most important features (by SHAP value) to include in feedback; others will be masked for privacy
 }
 
 # Create directories to store feedback and logs
@@ -84,9 +85,11 @@ def compute_shap_feedback(model, x_tensor, feature_names, threshold=0.05):
 
     feedback_list = []
     for shap_vec, real_vec in zip(shap_values, x_numpy):
+        K = CONFIG.get("top_k_features", 5)
+        topk_idx = np.argsort(np.abs(shap_vec))[-K:]
         feat_dict = {
-            name: float(real_val) if abs(shap_val) > threshold else np.nan
-            for name, shap_val, real_val in zip(feature_names, shap_vec, real_vec)
+            name: float(real_val) if idx in topk_idx else np.nan
+            for idx, (name, real_val) in enumerate(zip(feature_names, real_vec))
         }
         feedback_list.append(feat_dict)
     return feedback_list
