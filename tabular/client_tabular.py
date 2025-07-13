@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 
 # === CONFIGURATION ===
 CONFIG = {
-    "server_address": "128.214.252.95:9000", # Address of the Flower server to connect to
+    "server_address": "*.*.*.*:9000", # Address of the Flower server to connect to
     "train_csv_path": path,  # Path to the client's local training CSV file
     "feedback_log_dir": "client_feedback_logs_01",  # Folder to save feedback logs
     "gen_model_path": "tvae_gen.pkl",  # Path to the pre-trained TVAE generator
@@ -28,7 +28,8 @@ CONFIG = {
     "gen_multiplier": 3.0,  # Synthetic data size = multiplier × original size
     "cosine_sim_threshold": 0.9,  # Cosine similarity threshold for filtering
     "use_feedback": True, # True = generate based on server feedback; False = ignore feedback
-    "gen_multiplier_fixed": 0.3,  # Final synthetic data ratio
+    "gen_multiplier_fixed": 0.1,  # Synthetic data ratio ( use_feedback = False)
+                                  # Final Synthetic data ( use_feedback = True)
 }
 
 # Create the log directory if it doesn't exist
@@ -36,13 +37,7 @@ os.makedirs(CONFIG["feedback_log_dir"], exist_ok=True)
 
 # === SETUP LOGGING ===
 log_filename = os.path.join(CONFIG["feedback_log_dir"], f"log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
-
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s | %(message)s")
-console.setFormatter(formatter)
-logging.getLogger().addHandler(console)
-
+logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s | %(message)s")
 logging.info("=== CLIENT STARTED ===")
 logging.info(f"CONFIG: {CONFIG}")
 
@@ -119,7 +114,6 @@ class FLClient(fl.client.NumPyClient):
 
         if use_feedback and shap_feedback:
             logging.info(f"Using feedback: {len(shap_feedback)} samples")
-            # Convert feedback into a dataframe
             fb_df = pd.DataFrame([{**x["features"], "Exited": x["label"]} for x in shap_feedback])
 
             # === RESTORE MISSING VALUES USING TVAE
@@ -131,26 +125,31 @@ class FLClient(fl.client.NumPyClient):
 
             logging.info(f"NaN before restore: {fb_df.isna().sum().sum()} | after restore: {restored_df.isna().sum().sum()}")
 
-            # === GENERATE SYNTHETIC DATA
-            num_gen = int(CONFIG["gen_multiplier"] * len(self.train_data))
-            gen_candidates = tvae_gen.sample(num_gen)
-            logging.info(f"Generated {num_gen} samples from TVAE")
+            # === REPEATEDLY GENERATE & FILTER SYNTHETIC SAMPLES UNTIL ENOUGH SELECTED
+            required = int(CONFIG["gen_multiplier_fixed"] * len(df))
+            total_selected = pd.DataFrame()
+            max_attempts = 10  # Avoid infinite loop
 
-            # === FILTER SYNTHETIC SAMPLES SIMILAR TO FEEDBACK
-            # selected_samples = match_by_masked_features(gen_candidates, restored_df, CONFIG["cosine_sim_threshold"])
-            # logging.info(f"Selected {len(selected_samples)} samples using cosine threshold >= {CONFIG['cosine_sim_threshold']}")
+            for attempt in range(max_attempts):
+                gen_batch = tvae_gen.sample(int(CONFIG["gen_multiplier"] * len(df)))
+                filtered = match_by_masked_features(gen_batch, restored_df, CONFIG["cosine_sim_threshold"])
 
-            selected_samples = match_by_masked_features(gen_candidates, restored_df, CONFIG["cosine_sim_threshold"])
+                total_selected = pd.concat([total_selected, filtered]).drop_duplicates().reset_index(drop=True)
 
-            # limit number of samples gen
-            max_selected = int(CONFIG["gen_multiplier_fixed"] * len(df))
-            selected_samples = selected_samples.head(max_selected)
+                logging.info(f"[GEN-{attempt+1}] Filtered: {len(filtered)} | Total Selected: {len(total_selected)}")
 
-            logging.info(
-                f"Selected {len(selected_samples)} samples (max {max_selected}) using cosine threshold >= {CONFIG['cosine_sim_threshold']}")
+                if len(total_selected) >= required:
+                    break
 
-            # === MERGE ALL DATA
+            # Truncate to exact required number
+            selected_samples = total_selected.drop_duplicates().head(required)
+
+            logging.info(f"[FINAL] Selected {len(selected_samples)} synthetic samples (required {required})")
+
             self.train_data = pd.concat([self.train_data, restored_df, selected_samples], ignore_index=True)
+            print(f'[DEBUG] DATA TRAIN CLIENT {len(df)}')
+            print(f'[DEBUG] SYNTHETIC SAMPLES {len(selected_samples)}')
+            print(f'[DEBUG] RESTORED SAMPLES {len(restored_df)}')
 
         else:
             logging.info("Gen ignore feedback")
@@ -199,8 +198,8 @@ class FLClient(fl.client.NumPyClient):
         # Dummy evaluation (not used)
         return 0.0, len(self.train_data), {}
 
-# === START CLIENT ===
+# === MAIN ===
 if __name__ == "__main__":
     model = get_model()
     client = FLClient(model)
-    fl.client.start_numpy_client(server_address= CONFIG["server_address"], client=client)
+    fl.client.start_numpy_client(server_address=CONFIG['server_address'], client=client)
