@@ -14,47 +14,46 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 import platform
 import psutil
 import time
+from datetime import datetime
 
 # === SERVER CONFIGURATION ===
 CONFIG = {
-    "server_address": "0.0.0.0:9000",  # Start server on all network interfaces at port 9000
-    "test_csv_path": "dataset/new7030/test_server.csv",  # Test set for evaluation
-    "target_column": "Exited",  # Column to predict
-    "max_feedback_per_client": 1000,  # Limit feedback size per client
-    "num_rounds": 30,  # Total training rounds
-    "min_clients": 5,  # Minimum number of participating clients per round
-    "server_log_dir": "./server_logs/exp01",  # Folder to store logs
-    "server_summary_filename": "summary_log.csv",  # File to log evaluation metrics
-    "plateau_window": 3,  # Number of rounds to consider for plateau detection
-    "plateau_delta": 0.01,  # Threshold to trigger plateau
-    "min_feedback_round": 3,  # Minimum round to begin feedback
-    "shap_threshold": 0.05,  # SHAP threshold for feature importance
-    "top_k_features": 10  # Number of most important features (by SHAP value) to include in feedback; others will be masked for privacy
+    "server_address": "0.0.0.0:9000",
+    "test_csv_path": "dataset/new7030/test_server.csv",
+    "target_column": "Exited",
+    "max_feedback_per_client": 1000,
+    "num_rounds": 30,
+    "min_clients": 5,
+    "server_log_dir": "./server_logs/exp01",
+    "server_summary_filename": "summary_log.csv",
+    "server_time_filename": "summary_time.csv",
+    "server_config_filename": "server_config.json",
+    "plateau_window": 3,
+    "plateau_delta": 0.01,
+    "min_feedback_round": 3,
+    "shap_threshold": 0.05,
+    "top_k_features": 10
 }
 
-# Create directories to store feedback and logs
 CONFIG["server_feedback_dir"] = os.path.join(CONFIG["server_log_dir"], "feedback_logs")
 os.makedirs(CONFIG["server_log_dir"], exist_ok=True)
 os.makedirs(CONFIG["server_feedback_dir"], exist_ok=True)
 
-# Global containers
 server_log = []
 recent_accuracies = []
 feedback_storage = {}
+time_log = []
 
-# === LOAD TEST SET ===
 print("[SERVER] Loading test dataset...")
 test_df = pd.read_csv(CONFIG["test_csv_path"])
 X_test = test_df.drop(columns=[CONFIG["target_column"]]).values
 y_test = test_df[CONFIG["target_column"]].values
 feature_names = test_df.drop(columns=[CONFIG["target_column"]]).columns.tolist()
 
-# Convert test data to tensors
 X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
 y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
 testloader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=32)
 
-# === MODEL DEFINITION ===
 class SimpleNN(nn.Module):
     def __init__(self, input_size):
         super().__init__()
@@ -68,7 +67,6 @@ class SimpleNN(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-# === HELPER FUNCTIONS ===
 def get_parameters(model):
     return [val.cpu().detach().numpy() for val in model.state_dict().values()]
 
@@ -89,9 +87,7 @@ def compute_shap_feedback(model, x_tensor, feature_names, threshold=0.05):
     feedback_list = []
     for shap_vec, real_vec in zip(shap_values, x_numpy):
         abs_shap = np.abs(shap_vec)
-
         passed_threshold_idx = [i for i, val in enumerate(abs_shap) if val >= threshold]
-
         sorted_idx = sorted(passed_threshold_idx, key=lambda i: abs_shap[i], reverse=True)
         top_k = CONFIG.get("top_k_features", 5)
         selected_idx = sorted_idx[:top_k]
@@ -101,7 +97,6 @@ def compute_shap_feedback(model, x_tensor, feature_names, threshold=0.05):
             for idx, (name, real_val) in enumerate(zip(feature_names, real_vec))
         }
         feedback_list.append(feat_dict)
-        print(f"[DEBUG] SHAP passed: {len(passed_threshold_idx)} | Used: {len(selected_idx)}")
     return feedback_list
 
 def generate_feedback(client_id, model, dataloader, feature_names):
@@ -118,11 +113,10 @@ def generate_feedback(client_id, model, dataloader, feature_names):
 
     if not inputs_all:
         feedback_storage[client_id] = {"shap_feedback": [], "real_samples": []}
-        return
+        return 0.0
 
     label_counts = Counter(targets_all)
     most_common_label, _ = label_counts.most_common(1)[0]
-    print(f"[SERVER] Client {client_id} → Most misclassified label: {most_common_label} ({label_counts[most_common_label]} times)")
 
     filtered_samples = [
         (x, y) for x, y in zip(inputs_all, targets_all) if y == most_common_label
@@ -130,14 +124,15 @@ def generate_feedback(client_id, model, dataloader, feature_names):
 
     if not filtered_samples:
         feedback_storage[client_id] = {"shap_feedback": [], "real_samples": []}
-        return
+        return 0.0
 
     x_tensor = torch.stack([s[0] for s in filtered_samples])
+    start_fb = time.time()
     shap_feedbacks = compute_shap_feedback(model, x_tensor, feature_names, CONFIG["shap_threshold"])
+    fb_time = time.time() - start_fb
 
     shap_entries = []
     real_samples = []
-
     for shap_feat, (x_val, label) in zip(shap_feedbacks, filtered_samples):
         shap_entries.append({"features": shap_feat, "label": label})
         real_feature_dict = {name: float(val.item()) for name, val in zip(feature_names, x_val)}
@@ -153,6 +148,7 @@ def generate_feedback(client_id, model, dataloader, feature_names):
     feedback_path = os.path.join(CONFIG["server_feedback_dir"], f"feedback_round_{round_num}_client_{client_id}.json")
     with open(feedback_path, "w") as f:
         json.dump(feedback_storage[client_id], f, indent=2)
+    return fb_time
 
 def evaluate_fn(server_round, parameters, config, log_result=True):
     model = SimpleNN(X_test_tensor.shape[1])
@@ -197,7 +193,6 @@ def evaluate_fn(server_round, parameters, config, log_result=True):
             "fn": fn
         })
 
-    print(f"[SERVER] Round {server_round} - Acc: {acc:.4f}, F1: {f1:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
     return avg_loss, {"accuracy": acc}
 
 class CustomFedAvg(fl.server.strategy.FedAvg):
@@ -208,6 +203,7 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
         self.client_id_map = {}
 
     def configure_fit(self, server_round, parameters, client_manager):
+        self.start_time = time.time()
         clients = list(client_manager.sample(CONFIG["min_clients"]))
         fit_ins_list = []
         for client_proxy in clients:
@@ -225,23 +221,19 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
 
     def aggregate_fit(self, server_round, results, failures):
         CONFIG["current_round"] = server_round
+        start_agg = time.time()
         aggregated_parameters, _ = super().aggregate_fit(server_round, results, failures)
+        agg_time = time.time() - start_agg
         aggregated_weights = fl.common.parameters_to_ndarrays(aggregated_parameters)
+
         acc = evaluate_fn(server_round, aggregated_weights, config={}, log_result=True)[1]["accuracy"]
 
+        fb_time = 0.0
         plateau_triggered = False
         if server_round >= CONFIG["min_feedback_round"] and len(recent_accuracies) >= CONFIG["plateau_window"]:
-            deltas = [
-                abs(recent_accuracies[i+1] - recent_accuracies[i])
-                for i in range(-CONFIG["plateau_window"], -1)
-            ]
+            deltas = [abs(recent_accuracies[i+1] - recent_accuracies[i]) for i in range(-CONFIG["plateau_window"], -1)]
             if all(delta < CONFIG["plateau_delta"] for delta in deltas):
-                print("[SERVER] Accuracy plateau detected → triggering feedback.")
                 plateau_triggered = True
-            else:
-                print("[SERVER] Accuracy not stable enough → skipping feedback.")
-        else:
-            print("[SERVER] Not enough rounds to check plateau condition.")
 
         if plateau_triggered:
             for client_proxy, fit_res in results:
@@ -250,9 +242,16 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
                 weights = fl.common.parameters_to_ndarrays(fit_res.parameters)
                 temp_model = SimpleNN(X_test_tensor.shape[1])
                 set_parameters(temp_model, weights)
-                generate_feedback(client_id, temp_model, self.testloader, feature_names)
+                fb_time += generate_feedback(client_id, temp_model, self.testloader, feature_names)
 
         set_parameters(self.model, aggregated_weights)
+        round_time = time.time() - self.start_time
+        time_log.append({
+            "round": server_round,
+            "round_time_sec": round(round_time, 2),
+            "aggregate_time_sec": round(agg_time, 2),
+            "feedback_time_sec": round(fb_time, 2)
+        })
         return fl.common.ndarrays_to_parameters(aggregated_weights), {}
 
     def evaluate(self, server_round, parameters):
@@ -260,9 +259,8 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
         return evaluate_fn(server_round, ndarrays, config={}, log_result=True)
 
     def configure_evaluate(self, server_round, parameters, client_manager):
-        return None  # No client-side evaluation
+        return None
 
-# === MAIN ENTRYPOINT ===
 def log_server_system_info():
     info = {
         "Platform": platform.platform(),
@@ -292,15 +290,21 @@ def main():
     )
     print("[SERVER] Starting Flower server...")
     fl.server.start_server(
-        server_address="0.0.0.0:9000",
+        server_address=CONFIG["server_address"],
         config=fl.server.ServerConfig(num_rounds=CONFIG["num_rounds"]),
         strategy=strategy
     )
     log_path = os.path.join(CONFIG["server_log_dir"], CONFIG["server_summary_filename"])
     pd.DataFrame(server_log).to_csv(log_path, index=False)
+    time_path = os.path.join(CONFIG["server_log_dir"], CONFIG["server_time_filename"])
+    pd.DataFrame(time_log).to_csv(time_path, index=False)
+    config_path = os.path.join(CONFIG["server_log_dir"], CONFIG["server_config_filename"])
+    with open(config_path, "w") as f:
+        json.dump(CONFIG, f, indent=2)
     print(f"[SERVER] Training summary saved to {log_path}")
-    end_time = time.time()
-    print(f"[SERVER] Total execution time: {end_time - start_time:.2f} seconds")
+    print(f"[SERVER] Time summary saved to {time_path}")
+    print(f"[SERVER] Config saved to {config_path}")
+    print(f"[SERVER] Total execution time: {time.time() - start_time:.2f} seconds")
 
 if __name__ == "__main__":
     main()
