@@ -296,15 +296,23 @@ def main():
     )
     log_path = os.path.join(CONFIG["server_log_dir"], CONFIG["server_summary_filename"])
     pd.DataFrame(server_log).to_csv(log_path, index=False)
+
     time_path = os.path.join(CONFIG["server_log_dir"], CONFIG["server_time_filename"])
     pd.DataFrame(time_log).to_csv(time_path, index=False)
+
+    # save total execution time
+    total_time = time.time() - start_time
+    CONFIG["total_time_sec"] = round(total_time, 2)
+
     config_path = os.path.join(CONFIG["server_log_dir"], CONFIG["server_config_filename"])
     with open(config_path, "w") as f:
         json.dump(CONFIG, f, indent=2)
+
     print(f"[SERVER] Training summary saved to {log_path}")
     print(f"[SERVER] Time summary saved to {time_path}")
     print(f"[SERVER] Config saved to {config_path}")
-    print(f"[SERVER] Total execution time: {time.time() - start_time:.2f} seconds")
+    print(f"[SERVER] Total execution time: {total_time:.2f} seconds")
+
 
 if __name__ == "__main__":
     main()
