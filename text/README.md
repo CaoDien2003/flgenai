@@ -8,7 +8,7 @@ This project implements a **federated learning (FL)** system using Flower, where
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourname/fllgenai.git
+git clone https://github.com/CaoDien2003/flLgenai.git
 cd fllgenai/text
 ```
 
