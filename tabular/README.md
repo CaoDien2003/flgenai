@@ -133,4 +133,3 @@ For inquiries or feedback, feel free to reach out:
 
 - **Email**: nguyencaodien2003@gmail.com
 - **GitHub**: [CaoDien2003](https://github.com/YourGitHubUsername)
-- **LinkedIn**: [Điền Cao](https://www.linkedin.com/in/nguyencaodien/)
