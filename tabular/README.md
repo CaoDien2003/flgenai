@@ -29,8 +29,8 @@ This project implements a federated learning (FL) system using [Flower](https://
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourname/federated-shap-tvae.git
-cd federated-shap-tvae
+git clone https://github.com/CaoDien2003/flLgenai.git
+cd tabular
 ```
 
 2. **Install dependencies:**
