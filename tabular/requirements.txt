@@ -4,12 +4,17 @@ flwr==1.8.0
 # Core ML & Data processing
 torch==2.2.2
 pandas==2.2.2
-numpy==1.26.4
-scikit-learn==1.4.2
+numpy==1.26.4          # keep < 2.0: torch 2.2.2 is built against numpy 1.x
+scikit-learn==1.6.1
 scipy==1.13.0
 
 # Explainability (SHAP) for server-side feedback
 shap==0.44.1
 
 # Generative modeling for tabular data (TVAE on client side)
-sdv==1.9.0
+# >= 1.17 required: tvae_gen.pkl references sdv.metadata.metadata
+sdv==1.22.1
+setuptools==80.9.0
+
+# System info logging on the server
+psutil==7.2.2
