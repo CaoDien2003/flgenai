@@ -8,7 +8,14 @@
 <meta property="og:title" content="Domain Adaptation of Federated Learning by Data Generation and Server Feedback">
 <meta property="og:description" content="MIWAI 2025 (LNAI 16354, pp. 272–283) — server-side feedback + client-side generative augmentation for federated domain adaptation.">
 <meta property="og:type" content="article">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+<meta property="og:url" content="https://caodien2003.github.io/flLgenai/">
+<meta property="og:image" content="https://caodien2003.github.io/flLgenai/assets/text_result.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#2f4f7f">
 <style>
 :root{
   --bg:#fbfaf8; --panel:#ffffff; --panel-2:#f4f2ee;
@@ -43,7 +50,9 @@ a:hover{text-decoration:underline}
 nav{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;gap:20px;height:54px;overflow-x:auto;scrollbar-width:none}
 nav .wrap::-webkit-scrollbar{display:none}
-nav .brand{font-weight:650;letter-spacing:-.01em;white-space:nowrap;color:var(--ink)}
+nav .brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;color:var(--ink)}
+nav .brand:hover{text-decoration:none;color:var(--accent)}
+nav .brand .mark{width:26px;height:26px;flex:none;display:block;object-fit:contain}
 nav .links{display:flex;gap:18px;margin-left:auto}
 nav .links a{color:var(--ink-2);font-size:14px;white-space:nowrap}
 nav .links a:hover{color:var(--accent);text-decoration:none}
@@ -162,11 +171,14 @@ footer .sep{margin:0 8px;opacity:.5}
 }
 </style>
 </head>
-<body>
+<body id="top">
 
 <nav>
   <div class="wrap">
-    <span class="brand">FL · Server Feedback</span>
+    <a class="brand" href="#top">
+      <img class="mark" src="assets/logo-256.png" alt="" width="26" height="26">
+      <span>FL · Server Feedback</span>
+    </a>
     <div class="links">
       <a href="#abstract">Abstract</a>
       <a href="#method">Method</a>
