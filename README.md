@@ -200,5 +200,3 @@ Built with [Flower](https://flower.ai/), [SHAP](https://github.com/shap/shap), [
 ## Contact
 
 - Tien-Dung Cao (corresponding author) — dung.cao@ttu.edu.vn
-- Tabular track — Cao-Dien Nguyen, [@CaoDien2003](https://github.com/CaoDien2003) · nguyencaodien2003@gmail.com
-- Text track — Kim-Tinh Phan, [@ktinh02](https://github.com/ktinh02) · phanlekimtinh0987@gmail.com
