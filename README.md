@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo-256.png" width="88" alt="School of Information Technology, Tan Tao University">
+</p>
+
 # Domain Adaptation of Federated Learning by Data Generation and Server Feedback
 
 [![Paper](https://img.shields.io/badge/Paper-MIWAI%202025-2f4f7f)](https://doi.org/10.1007/978-981-95-4960-3_22)
