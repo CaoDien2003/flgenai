@@ -6,12 +6,12 @@
 
 [![Paper](https://img.shields.io/badge/Paper-MIWAI%202025-2f4f7f)](https://doi.org/10.1007/978-981-95-4960-3_22)
 [![DOI](https://img.shields.io/badge/DOI-10.1007%2F978--981--95--4960--3__22-9a6f2a)](https://doi.org/10.1007/978-981-95-4960-3_22)
-[![Project page](https://img.shields.io/badge/Project-page-2b6a4d)](https://caodien2003.github.io/flLgenai/)
+[![Project page](https://img.shields.io/badge/Project-page-2b6a4d)](https://caodien2003.github.io/flgenai/)
 [![Flower](https://img.shields.io/badge/Flower-1.8.0-blue)](https://flower.ai/)
 
 Reference implementation of **"Domain Adaptation of Federated Learning by Data Generation and Server Feedback"**, published in *MIWAI 2025* (LNAI 16354, pp. 272–283, Springer Nature Singapore).
 
-📄 **[Paper](https://doi.org/10.1007/978-981-95-4960-3_22)** &nbsp;·&nbsp; 🌐 **[Project page](https://caodien2003.github.io/flLgenai/)**
+📄 **[Paper](https://doi.org/10.1007/978-981-95-4960-3_22)** &nbsp;·&nbsp; 🌐 **[Project page](https://caodien2003.github.io/flgenai/)**
 
 Phuong-Anh Vu¹, Kim-Tinh Phan¹, Cao-Dien Nguyen¹, Tien-Dung Cao¹ ✉, Le Trieu Phong², Ngoc-Thai Nguyen³
 <sub>¹ Tan Tao University · ² NICT, Tokyo · ³ Viettel Solutions</sub>
