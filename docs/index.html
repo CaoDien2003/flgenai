@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>flLgenai — Domain Adaptation of Federated Learning by Data Generation and Server Feedback</title>
+<meta name="description" content="Federated learning (Flower) where the server explains client failures on a shared test set (SHAP / Grad-CAM) and clients regenerate targeted local data (TVAE / Gemma 2B) to fix them." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%81%3C/text%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg: #f7f7f5; --bg-elevated: #ffffff; --text: #1c1c1a; --text-muted: #5c5c57;
+    --border: #e4e2dd; --accent: #b45309; --accent-soft: #fdf0e1;
+    --code-bg: #1c1c1a; --code-text: #f4f1ea;
+    --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 8px 24px rgba(20,20,15,0.05);
+    --radius: 14px;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #161614; --bg-elevated: #201f1c; --text: #efece4; --text-muted: #a7a297;
+      --border: #34322c; --accent: #f0a86b; --accent-soft: #2a231a;
+      --code-bg: #0f0f0e; --code-text: #eee9df;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #161614; --bg-elevated: #201f1c; --text: #efece4; --text-muted: #a7a297;
+    --border: #34322c; --accent: #f0a86b; --accent-soft: #2a231a;
+    --code-bg: #0f0f0e; --code-text: #eee9df;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"]{
+    --bg: #f7f7f5; --bg-elevated: #ffffff; --text: #1c1c1a; --text-muted: #5c5c57;
+    --border: #e4e2dd; --accent: #b45309; --accent-soft: #fdf0e1;
+    --code-bg: #1c1c1a; --code-text: #f4f1ea;
+    --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 8px 24px rgba(20,20,15,0.05);
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55; overflow-x: hidden;
+  }
+  a{ color: var(--accent); text-decoration: none; }
+  a:hover{ text-decoration: underline; }
+  .wrap{ max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero{ padding: 72px 0 48px; border-bottom: 1px solid var(--border); }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 18px;
+  }
+  h1{ font-size: clamp(26px, 4.2vw, 42px); line-height: 1.18; margin: 0 0 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .lede{ font-size: 18px; color: var(--text-muted); max-width: 70ch; margin: 0 0 12px; }
+  .lede.small{ font-size: 15px; }
+  .cta-row{ display:flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 14.5px;
+    border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{ text-decoration:none; box-shadow: var(--shadow); transform: translateY(-1px); }
+  .btn.primary{ background: var(--accent); border-color: var(--accent); color: #1c1408; }
+
+  main section{ padding: 48px 0; border-bottom: 1px solid var(--border); }
+  main section:last-of-type{ border-bottom: none; }
+  h2{ font-size: 22px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  .section-sub{ color: var(--text-muted); margin: 0 0 28px; max-width: 70ch; }
+
+  .flow{ display:flex; flex-direction:column; gap: 14px; }
+  .flow-row{
+    display:flex; align-items:stretch; gap: 14px; flex-wrap: wrap;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .flow-step{ display:flex; align-items:flex-start; gap: 12px; flex: 1 1 260px; }
+  .flow-num{
+    flex-shrink:0; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .flow-step strong{ display:block; font-size: 14.5px; margin-bottom: 2px; }
+  .flow-step span{ color: var(--text-muted); font-size: 13.5px; }
+  .flow-arrow-down{ text-align:center; color: var(--accent); font-size: 18px; }
+
+  .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  @media (max-width: 720px){ .grid{ grid-template-columns: 1fr; } }
+  .card{
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; box-shadow: var(--shadow);
+  }
+  .card h3{ margin: 0 0 8px; font-size: 17px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tag{
+    font-size: 11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    color: var(--accent); background: var(--accent-soft); padding: 3px 9px; border-radius: 999px;
+  }
+  .card p{ color: var(--text-muted); font-size: 14.5px; margin: 0 0 14px; }
+  .card ul{ margin: 0 0 16px; padding-left: 18px; color: var(--text-muted); font-size: 14px; }
+  .card ul li{ margin-bottom: 4px; }
+  .card a.folder-link{ font-size: 14px; font-weight: 600; }
+  .stat-row{ display:flex; gap: 18px; flex-wrap:wrap; margin: 0 0 14px; }
+  .stat{ font-size: 13px; color: var(--text-muted); }
+  .stat b{ display:block; color: var(--text); font-size: 18px; }
+
+  .feature-list{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px 28px; list-style:none; margin:0; padding:0; }
+  @media (max-width: 640px){ .feature-list{ grid-template-columns: 1fr; } }
+  .feature-list li{ display:flex; gap: 10px; font-size: 14.5px; color: var(--text-muted); }
+  .feature-list li::before{ content: "✓"; color: var(--accent); font-weight: 700; flex-shrink:0; }
+
+  .note{
+    display:flex; gap: 10px; font-size: 13.5px; color: var(--text-muted);
+    background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; margin-top: 4px;
+  }
+  .note strong{ color: var(--text); }
+
+  pre{
+    background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 0 0 14px;
+  }
+  code{ font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
+  .card :not(pre) > code, .flow-step :not(pre) > code{
+    background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 5px; font-size: 12.5px;
+  }
+
+  figure{ margin: 0; }
+  figure img{ max-width: 100%; display:block; border-radius: var(--radius); border: 1px solid var(--border); }
+  figcaption{ color: var(--text-muted); font-size: 13px; margin-top: 10px; }
+
+  .credits{ display:flex; flex-wrap:wrap; gap: 10px; }
+  .pill{ border: 1px solid var(--border); background: var(--bg-elevated); border-radius: 999px; padding: 7px 14px; font-size: 13.5px; }
+
+  footer{
+    padding: 40px 0 64px; color: var(--text-muted); font-size: 13.5px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  footer a{ color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">🔁 Federated Learning · Flower</span>
+    <h1>Domain Adaptation of Federated Learning by Data Generation and Server Feedback</h1>
+    <p class="lede">
+      A federated learning system where the <strong>server</strong> re-runs each client's model against a
+      shared global test set, explains <em>why</em> it fails on the misclassified samples
+      (SHAP for tabular, Grad-CAM for text), and sends that explanation back. Each <strong>client</strong>
+      turns the explanation into a generation prompt — TVAE for tabular rows, Gemma&nbsp;2B for news
+      headlines — to synthesize the specific data it's missing, then retrains locally.
+    </p>
+    <p class="lede small">Two independent pipelines share the same feedback→generate→retrain loop, applied to two data types.</p>
+    <div class="cta-row">
+      <a class="btn primary" href="https://github.com/CaoDien2003/flLgenai">View on GitHub ↗</a>
+      <a class="btn" href="#tabular">Tabular pipeline</a>
+      <a class="btn" href="#text">Text pipeline</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="overview">
+    <div class="wrap">
+      <h2>The feedback loop</h2>
+      <p class="section-sub">Triggered only when training stalls — plateaued accuracy (tabular) or an overfit / plateau signal (text) — not every round.</p>
+      <div class="flow">
+        <div class="flow-row">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div><strong>Clients train locally</strong><span>Each client fits its model on private data and sends weights back — raw data never leaves the client.</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div><strong>Server aggregates &amp; evaluates</strong><span>FedAvg combines the weights; the server scores the result on its own held-out test set.</span></div>
+          </div>
+        </div>
+        <div class="flow-arrow-down">↓ if accuracy plateaus / overfits</div>
+        <div class="flow-row">
+          <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div><strong>Server diagnoses each client</strong><span>Runs that client's model on the test set, finds what it gets wrong, and explains why with <code>SHAP</code> (top-k features) or <code>Grad-CAM</code> (salient tokens + position).</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div><strong>Client regenerates data</strong><span>The explanation becomes a generation target: TVAE samples filtered by cosine similarity, or a Gemma&nbsp;2B prompt built from salient tokens.</span></div>
+          </div>
+        </div>
+        <div class="flow-arrow-down">↓</div>
+        <div class="flow-row">
+          <div class="flow-step">
+            <div class="flow-num">5</div>
+            <div><strong>Retrain &amp; repeat</strong><span>New synthetic samples are merged into the client's local training set for the next round.</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note"><strong>Note:</strong> for the tabular pipeline, the SHAP feedback also includes a few real (but feature-masked) samples from the server's own test set — used only to fill in the synthetic data's missing values, not client-to-client raw data sharing.</p>
+    </div>
+  </section>
+
+  <section id="modules">
+    <div class="wrap">
+      <h2>Two pipelines</h2>
+      <p class="section-sub">Independent codebases in <code>/tabular</code> and <code>/text</code>, each with its own server, client, dataset and README.</p>
+      <div class="grid">
+        <div class="card" id="tabular">
+          <h3>Tabular <span class="tag">SHAP → TVAE</span></h3>
+          <div class="stat-row">
+            <div class="stat"><b>5</b>clients, 70/30 split</div>
+            <div class="stat"><b>Binary</b>churn (Exited)</div>
+          </div>
+          <p>Bank customer churn classification with a 5-layer MLP. When accuracy plateaus, the server runs SHAP on each client's misclassified test samples and returns the top-10 most important (partially masked) features. The client fills the gaps with a restore-TVAE, then samples a pre-trained generator TVAE and keeps only synthetic rows whose cosine similarity to the feedback exceeds 0.9.</p>
+          <ul>
+            <li><code>server_tabular.py</code> · <code>client_tabular.py</code></li>
+            <li>Dataset: Kaggle Bank Customer Churn (scaled features)</li>
+            <li>Plateau window 3 rounds, Δaccuracy &lt; 0.01</li>
+          </ul>
+          <a class="folder-link" href="https://github.com/CaoDien2003/flLgenai/tree/main/tabular">Browse /tabular ↗</a>
+        </div>
+        <div class="card" id="text">
+          <h3>Text <span class="tag">Grad-CAM → Gemma 2B</span></h3>
+          <div class="stat-row">
+            <div class="stat"><b>5</b>clients</div>
+            <div class="stat"><b>42</b>news categories</div>
+          </div>
+          <p>News headline classification with fine-tuned DistilBERT. On overfit or plateau, the server runs Grad-CAM on each client's misclassified test headlines, keeps the 3–10 most salient tokens with their position (beginning/middle/end), and sends that per-class. The client prompts Gemma&nbsp;2B to write a new headline containing those tokens in those positions, validates length and token coverage, then adds it to its training set.</p>
+          <ul>
+            <li><code>server_textdata.py</code> · <code>client_textdata.py</code></li>
+            <li>Dataset: HuffPost News Category (42 classes)</li>
+            <li>Checkpointed &amp; resumable rounds; runs clients on Colab</li>
+          </ul>
+          <a class="folder-link" href="https://github.com/CaoDien2003/flLgenai/tree/main/text">Browse /text ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Features</h2>
+      <ul class="feature-list">
+        <li>Failure-driven feedback: only misclassified samples on the server's test set are explained</li>
+        <li>SHAP top-k features (tabular) / Grad-CAM salient tokens + position (text)</li>
+        <li>Generative augmentation targeted at the diagnosed weak points, not random data</li>
+        <li>Cosine-similarity filtering keeps only synthetic rows that match the feedback (tabular)</li>
+        <li>Plateau / overfit detection triggers feedback only when training actually stalls</li>
+        <li>Server-side round timing and accuracy/precision/recall/F1 logged to CSV every run</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="wrap">
+      <h2>Quick start</h2>
+      <p class="section-sub">Each pipeline is self-contained — clone once, then run either independently.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>Tabular</h3>
+          <pre><code>git clone https://github.com/CaoDien2003/flLgenai.git
+cd flLgenai/tabular
+pip install -r requirements.txt
+
+python server_tabular.py
+python client_tabular.py --client-id client1 \
+  --train-csv dataset/7030/train1.csv \
+  --server-address 127.0.0.1:9000 \
+  --log-dir logs/exp01</code></pre>
+          <p>Run once per client with a unique <code>--client-id</code> — the server keys its feedback by this id.</p>
+        </div>
+        <div class="card">
+          <h3>Text</h3>
+          <pre><code>git clone https://github.com/CaoDien2003/flLgenai.git
+cd flLgenai/text
+pip install -r requirements.txt
+
+python server_textdata.py --num_rounds 30 --ckpt_every 5
+python client_textdata.py   # one per client</code></pre>
+          <p>Requires a Hugging Face login token with access to <code>google/gemma-2b-it</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="wrap">
+      <h2>Example result</h2>
+      <p class="section-sub">Churn-class distribution before and after TVAE-based augmentation, on the tabular pipeline's 70/30 client split.</p>
+      <figure>
+        <img src="assets/distribution_7030.png" alt="Class distribution before and after TVAE-based data augmentation (70/30 split)" loading="lazy" />
+        <figcaption>tabular/fig/distribution_7030.png</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="credits">
+    <div class="wrap">
+      <h2>Built with</h2>
+      <div class="credits">
+        <a class="pill" href="https://flower.dev">Flower</a>
+        <a class="pill" href="https://github.com/slundberg/shap">SHAP</a>
+        <a class="pill" href="https://docs.sdv.dev/sdv">SDV (TVAE)</a>
+        <a class="pill" href="https://huggingface.co/docs/transformers/en/model_doc/distilbert">DistilBERT</a>
+        <a class="pill" href="https://huggingface.co/docs/transformers/en/model_doc/gemma">Gemma 2B</a>
+        <a class="pill" href="https://pytorch.org">PyTorch</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; width:100%;">
+    <span>flLgenai — <a href="https://github.com/CaoDien2003/flLgenai">CaoDien2003/flLgenai</a></span>
+    <span>Contact: <a href="mailto:nguyencaodien2003@gmail.com">nguyencaodien2003@gmail.com</a> · <a href="mailto:phanlekimtinh0987@gmail.com">phanlekimtinh0987@gmail.com</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
